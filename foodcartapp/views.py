@@ -1,5 +1,7 @@
 from textwrap import dedent
 
+import phonenumbers
+
 from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework import status
@@ -64,24 +66,9 @@ def product_list_api(request):
 @api_view(['POST'])
 def register_order(request):
     order = request.data
-    try:
-        products_in_order = order['products']
-    except KeyError:
-        error_detail = '''required field 'products' not found.'''
-        response = {'detail': error_detail}
-        return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-    if not products_in_order:
-        error_detail = '''required field 'products' can't be empty.'''
-        response = {'detail': error_detail}
-        return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-    if not isinstance(products_in_order, list):
-        parameter_type = type(products_in_order).__name__
-        error_detail = f'''\
-        required field 'products' must be list type, got {parameter_type} type.'''
-        response = {'detail': dedent(error_detail)}
-        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+    form_errors = _get_errors_from_order_form(order)
+    if form_errors:
+        return Response(form_errors, status.HTTP_400_BAD_REQUEST)
 
     founded_order, created = Order.objects.get_or_create(
         name=order['firstname'],
@@ -90,6 +77,7 @@ def register_order(request):
         address=order['address']
     )
 
+    products_in_order = order['products']
     for product in products_in_order:
         product_id = product['product']
         product_quantity = product['quantity']
@@ -100,5 +88,57 @@ def register_order(request):
             product=founded_product,
             item_quantity=product_quantity
         )
-
     return Response(order)
+
+
+def _get_errors_from_order_form(order):
+    required_fields = ['products', 'firstname', 'lastname',
+                       'phonenumber', 'address']
+    not_passed_required_fields = [field for field in required_fields if not
+                                  order.get(field)]
+    if not_passed_required_fields:
+        fields = ', '.join(not_passed_required_fields)
+        error_detail = '''You didn't pass all required field(s).'''
+        response = {
+            'description': dedent(error_detail).replace('\n', ' '),
+            'missed_field(s)': fields,
+            'notice': 'Required fields can\'t be empty'
+        }
+        return response
+
+    products_in_order = order['products']
+    if not isinstance(products_in_order, list):
+        parameter_type = type(products_in_order).__name__
+        error_detail = f'''\
+        Required field 'products' must be list type,
+        got {parameter_type} type.'''
+        response = {'description': dedent(error_detail).replace('\n', ' ')}
+        return response
+
+    fields_that_must_be_string = [
+        'firstname', 'lastname', 'phonenumber', 'address'
+    ]
+    fields_with_incorrect_type = [
+        field for field in fields_that_must_be_string if not
+        isinstance(order[field], str)
+    ]
+    for field in fields_with_incorrect_type:
+        field_type = type(order[field]).__name__
+        error_detail = f'''\
+        Required field '{field}' must be string type, got {field_type} type.'''
+        response = {'description': dedent(error_detail)}
+        return response
+
+    max_product_id = Product.objects.all().count()
+    for product in products_in_order:
+        if product['product'] > max_product_id:
+            error_detail = '''Required field 'product' is not valid.'''
+            response = {'description': error_detail}
+            return response
+
+    user_phone_number = order['phonenumber']
+    parsed_phone_number = phonenumbers.parse(user_phone_number)
+    if not phonenumbers.is_valid_number(parsed_phone_number):
+        error_detail = '''Phone number is not valid'''
+        response = {'description': error_detail}
+        return response
