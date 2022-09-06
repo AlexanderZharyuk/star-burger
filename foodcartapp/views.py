@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.serializers import ValidationError
-from rest_framework.serializers import ModelSerializer, CharField, ListField
+from rest_framework.serializers import ModelSerializer, ListField
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -9,7 +9,10 @@ from .models import Product, Order, ItemsInOrder
 
 
 class OrderSerializer(ModelSerializer):
-    products = ListField(allow_empty=False)
+    products = ListField(
+        allow_empty=False,
+        write_only=True
+    )
 
     class Meta:
         model = Order
@@ -103,4 +106,8 @@ def register_order(request):
             product=founded_product,
             item_quantity=product_quantity
         )
-    return Response(serializer.validated_data)
+
+    order_id = Order.objects.all().count()
+    server_response = {'id': order_id}
+    server_response.update(serializer.data)
+    return Response(server_response)
