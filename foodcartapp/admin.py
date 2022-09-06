@@ -22,7 +22,7 @@ class OrderInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class Order(admin.ModelAdmin):
+class OrderAdmin(admin.ModelAdmin):
     inlines = [
         OrderInline
     ]
