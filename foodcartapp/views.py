@@ -1,5 +1,8 @@
+from textwrap import dedent
+
 from django.http import JsonResponse
 from django.templatetags.static import static
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -61,7 +64,25 @@ def product_list_api(request):
 @api_view(['POST'])
 def register_order(request):
     order = request.data
-    products_in_order = order['products']
+    try:
+        products_in_order = order['products']
+    except KeyError:
+        error_detail = '''required field 'products' not found.'''
+        response = {'detail': error_detail}
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+    if not products_in_order:
+        error_detail = '''required field 'products' can't be empty.'''
+        response = {'detail': error_detail}
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+    if not isinstance(products_in_order, list):
+        parameter_type = type(products_in_order).__name__
+        error_detail = f'''\
+        required field 'products' must be list type, got {parameter_type} type.'''
+        response = {'detail': dedent(error_detail)}
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
     founded_order, created = Order.objects.get_or_create(
         name=order['firstname'],
         surname=order['lastname'],
