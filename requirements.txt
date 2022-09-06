@@ -2,5 +2,7 @@ Django==3.2.15
 django-debug-toolbar==3.2.1
 django-phonenumber-field==6.4.0
 django-phonenumbers==1.0.1
+djangorestframework==3.13.1
 environs==9.3.2
+phonenumbers==8.12.54
 Pillow==9.2.0
