@@ -135,6 +135,24 @@ class OrderQuerySet(models.QuerySet):
 
 
 class Order(models.Model):
+    NOT_PROCESSED = 'NP'
+    IN_PROCESS = 'IP'
+    IN_DELIVERY = 'ID'
+    PROCESSED = 'OP'
+    ORDER_STATUS_CHOICES = [
+        (NOT_PROCESSED, 'Не обработан'),
+        (IN_PROCESS, 'Собирается рестораном'),
+        (IN_DELIVERY, 'В доставке'),
+        (PROCESSED, 'Обработан')
+    ]
+
+    status = models.CharField(
+        max_length=30,
+        choices=ORDER_STATUS_CHOICES,
+        default=NOT_PROCESSED,
+        verbose_name='Статус заказа',
+        db_index=True
+    )
     firstname = models.CharField(
         'Имя',
         max_length=25
