@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
-from rest_framework.serializers import ValidationError
-from rest_framework.serializers import ModelSerializer, ListField
+from django.db import transaction
+from rest_framework.serializers import ValidationError, ModelSerializer, ListField
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -82,6 +82,7 @@ def product_list_api(request):
     })
 
 
+@transaction.atomic
 @api_view(['POST'])
 def register_order(request):
     order = request.data
@@ -104,7 +105,8 @@ def register_order(request):
         ItemsInOrder.objects.create(
             order=founded_order,
             product=founded_product,
-            item_quantity=product_quantity
+            item_quantity=product_quantity,
+            price=founded_product.price
         )
 
     order_id = Order.objects.all().count()
