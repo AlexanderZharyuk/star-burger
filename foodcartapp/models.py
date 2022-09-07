@@ -140,11 +140,18 @@ class Order(models.Model):
     IN_PROCESS = 'IP'
     IN_DELIVERY = 'ID'
     PROCESSED = 'OP'
+    PAID_BY_CASH = 'CASH'
+    PAID_BY_CARD = 'CARD'
+
     ORDER_STATUS_CHOICES = [
         (NOT_PROCESSED, 'Не обработан'),
         (IN_PROCESS, 'Собирается рестораном'),
         (IN_DELIVERY, 'В доставке'),
         (PROCESSED, 'Обработан')
+    ]
+    ORDER_PAID_STATUS_CHOICES = [
+        (PAID_BY_CASH, 'Наличными'),
+        (PAID_BY_CARD, 'Интернет-эквайринг')
     ]
 
     status = models.CharField(
@@ -153,6 +160,12 @@ class Order(models.Model):
         default=NOT_PROCESSED,
         verbose_name='Статус заказа',
         db_index=True
+    )
+    paid_status = models.CharField(
+        max_length=50,
+        verbose_name='Способ оплаты',
+        choices=ORDER_PAID_STATUS_CHOICES,
+        default=PAID_BY_CASH
     )
     firstname = models.CharField(
         'Имя',
