@@ -176,6 +176,13 @@ class ItemsInOrder(models.Model):
     item_quantity = models.IntegerField(
         verbose_name='Количество'
     )
+    price = models.DecimalField(
+        'Цена позиции',
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True
+    )
 
     def __str__(self):
         return f'Продукт {self.product.name} в количестве {self.item_quantity}'
