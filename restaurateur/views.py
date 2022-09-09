@@ -7,8 +7,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
-
-from foodcartapp.models import Product, Restaurant, Order, ItemsInOrder
+from foodcartapp.models import Product, Restaurant, Order
 
 
 class Login(forms.Form):
@@ -92,7 +91,45 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    orders = Order.objects.prefetch_related('products').summary()\
-        .filter(status__in=['NP', 'IP', 'ID'])
-    context = {'order_items': [order for order in orders]}
+    orders = Order.objects.summary()\
+        .filter(status__in=['NP', 'IP', 'ID'])\
+        .prefetch_related('products__product').prefetch_related('restaurant').\
+        order_by('-status')
+    restaurants = Restaurant.objects.all()\
+        .prefetch_related('menu_items__product')
+
+    available_items_in_restaurant = {
+        restaurant.name: [
+            item.product.name for item in restaurant.menu_items.all()
+            if item.availability
+        ] for restaurant in restaurants
+    }
+    items_in_order = {
+        order.id: [item.product.name for item in order.products.all()]
+        for order in orders
+    }
+    available_orders_in_restaurants = {
+        restaurant: [] for restaurant in available_items_in_restaurant.keys()
+    }
+
+    for restaurant, available_items in available_items_in_restaurant.items():
+        for order_id, order_items in items_in_order.items():
+            common_items = set(order_items).intersection(available_items)
+            if len(common_items) == len(order_items):
+                available_orders_in_restaurants[restaurant].append(order_id)
+
+    orders_that_cant_be_ready = []
+    for order_id in items_in_order.keys():
+        available = False
+        for order_ids in available_orders_in_restaurants.values():
+            if order_id in order_ids:
+                available = True
+        if not available:
+            orders_that_cant_be_ready.append(order_id)
+
+    context = {
+        'order_items': [order for order in orders],
+        'available_restaurants': available_orders_in_restaurants,
+        'orders_that_cant_be_ready': orders_that_cant_be_ready
+    }
     return render(request, template_name='order_items.html', context=context)

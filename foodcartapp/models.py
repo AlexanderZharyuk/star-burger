@@ -167,6 +167,13 @@ class Order(models.Model):
         choices=ORDER_PAID_STATUS_CHOICES,
         default=PAID_BY_CASH
     )
+    restaurant = models.ForeignKey(
+        'Restaurant',
+        on_delete=models.CASCADE,
+        verbose_name='Ресторан, который приготовит заказ',
+        related_name='orders',
+        null=True
+    )
     firstname = models.CharField(
         'Имя',
         max_length=25
