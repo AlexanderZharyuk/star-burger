@@ -38,14 +38,16 @@
         <td>
           {% if not item.restaurant %}
             <p style="font-weight: bold">Может быть приготовлен ресторанами:</p>
-              {% if item.id in orders_that_cant_be_ready %}
-                Нет доступных ресторанов для приготовления заказа.
-              {% endif %}
-            {% for restaurant, items in available_restaurants.items %}
-              {% if item.id in items %}
+            {% if not item.valid_address %}
+              <p>Некорректно указан адрес</p>
+            {% elif not item.restaurants %}
+              <p>Нет доступных ресторанов для заказа</p>
+            {% else %}
+              {% for restaurant, distance in item.restaurants.items %}
                 &#8226; {{ restaurant }}<br>
-              {% endif %}
-            {% endfor %}
+                Расстояние: {{ distance }} км.<br>
+              {% endfor %}
+            {% endif %}
           {% else %}
             <p style="font-weight: bold;">Заказ готовит ресторан</p>
             {{ item.restaurant }}

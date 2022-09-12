@@ -1,13 +1,17 @@
+import requests
+
+from collections import defaultdict
 from django import forms
 from django.shortcuts import redirect, render
+from django.conf import settings
 from django.views import View
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
-
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
+from geopy import distance
 
-from foodcartapp.models import Product, Restaurant, Order
+from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 
 
 class Login(forms.Form):
@@ -93,43 +97,67 @@ def view_restaurants(request):
 def view_orders(request):
     orders = Order.objects.summary()\
         .filter(status__in=['NP', 'IP', 'ID'])\
-        .prefetch_related('products__product').prefetch_related('restaurant').\
-        order_by('-status')
-    restaurants = Restaurant.objects.all()\
-        .prefetch_related('menu_items__product')
+        .prefetch_related('products__product')\
+        .prefetch_related('restaurant')\
+        .order_by('-status')
+    menu_items = RestaurantMenuItem.objects.all()\
+        .select_related('product').select_related('restaurant')\
+        .exclude(availability=False)
 
-    available_items_in_restaurant = {
-        restaurant.name: [
-            item.product.name for item in restaurant.menu_items.all()
-            if item.availability
-        ] for restaurant in restaurants
-    }
-    items_in_order = {
-        order.id: [item.product.name for item in order.products.all()]
-        for order in orders
-    }
-    available_orders_in_restaurants = {
-        restaurant: [] for restaurant in available_items_in_restaurant.keys()
-    }
+    for order in orders:
+        order.restaurants = {}
+        order.valid_address = True
+        order.available_restaurants = set()
 
-    for restaurant, available_items in available_items_in_restaurant.items():
-        for order_id, order_items in items_in_order.items():
-            common_items = set(order_items).intersection(available_items)
-            if len(common_items) == len(order_items):
-                available_orders_in_restaurants[restaurant].append(order_id)
+        for item in order.products.all():
+            available_restaurants = [
+                restaurant_item.restaurant for restaurant_item in menu_items
+                if item.product.id == restaurant_item.product.id
+            ]
+            if not order.available_restaurants:
+                order.available_restaurants = set(available_restaurants)
+                continue
 
-    orders_that_cant_be_ready = []
-    for order_id in items_in_order.keys():
-        available = False
-        for order_ids in available_orders_in_restaurants.values():
-            if order_id in order_ids:
-                available = True
-        if not available:
-            orders_that_cant_be_ready.append(order_id)
+            order.available_restaurants = order.available_restaurants \
+                                          & set(available_restaurants)
+
+        for restaurant in order.available_restaurants:
+            restaurant_coordinates = _fetch_coordinates(
+                settings.YANDEX_API_KEY, restaurant.address
+            )
+            order_coordinates = _fetch_coordinates(
+                settings.YANDEX_API_KEY, order.address
+            )
+            if not order_coordinates:
+                order.valid_address = False
+                break
+
+            order.restaurants[restaurant] = round(
+                distance.distance(restaurant_coordinates, order_coordinates).km,
+                2)
+        order.restaurants = \
+            dict(sorted(order.restaurants.items(), key=lambda item: item[1]))
 
     context = {
-        'order_items': [order for order in orders],
-        'available_restaurants': available_orders_in_restaurants,
-        'orders_that_cant_be_ready': orders_that_cant_be_ready
+        'order_items': orders,
     }
-    return render(request, template_name='order_items.html', context=context)
+    return render(request, template_name='order_items.html',
+                  context=context)
+
+
+def _fetch_coordinates(apikey, address):
+    base_url = "https://geocode-maps.yandex.ru/1.x"
+    response = requests.get(base_url, params={
+        "geocode": address,
+        "apikey": apikey,
+        "format": "json",
+    })
+    response.raise_for_status()
+    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+
+    if not found_places:
+        return None
+
+    most_relevant = found_places[0]
+    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
+    return lat, lon
