@@ -1,6 +1,5 @@
 import requests
 
-from collections import defaultdict
 from django import forms
 from django.shortcuts import redirect, render
 from django.conf import settings
@@ -12,6 +11,7 @@ from django.contrib.auth import views as auth_views
 from geopy import distance
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
+from distances.models import Place
 
 
 class Login(forms.Form):
@@ -103,6 +103,10 @@ def view_orders(request):
     menu_items = RestaurantMenuItem.objects.all()\
         .select_related('product').select_related('restaurant')\
         .exclude(availability=False)
+    places = {place.address: {
+        'lat': place.latitude,
+        'lon': place.longitude
+    } for place in Place.objects.all()}
 
     for order in orders:
         order.restaurants = {}
@@ -122,12 +126,17 @@ def view_orders(request):
                                           & set(available_restaurants)
 
         for restaurant in order.available_restaurants:
-            restaurant_coordinates = _fetch_coordinates(
-                settings.YANDEX_API_KEY, restaurant.address
-            )
-            order_coordinates = _fetch_coordinates(
-                settings.YANDEX_API_KEY, order.address
-            )
+            if restaurant.address not in places.keys():
+                restaurant_coordinates = _get_address_coordinates(restaurant.address)
+            else:
+                restaurant_coordinates = places[restaurant.address]['lat'], \
+                                         places[restaurant.address]['lon']
+            if order.address not in places.keys():
+                order_coordinates = _get_address_coordinates(order.address)
+            else:
+                order_coordinates = places[order.address]['lat'], \
+                                    places[order.address]['lon']
+                
             if not order_coordinates:
                 order.valid_address = False
                 break
@@ -161,3 +170,19 @@ def _fetch_coordinates(apikey, address):
     most_relevant = found_places[0]
     lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
     return lat, lon
+
+
+def _get_address_coordinates(address):
+    place, created = Place.objects.get_or_create(address=address)
+
+    if not created:
+        return place.latitude, place.longitude
+
+    place_coordinates = _fetch_coordinates(settings.YANDEX_API_KEY, address)
+    if not place_coordinates:
+        return False
+
+    place.address = address
+    place.latitude, place.longitude = place_coordinates
+    place.save()
+    return place.latitude, place.longitude
