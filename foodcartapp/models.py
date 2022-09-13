@@ -130,7 +130,7 @@ class OrderQuerySet(models.QuerySet):
     def summary(self):
         amount_order = self.annotate(
             amount=Sum(
-                F('products__item_quantity') * F('products__product__price'))
+                F('products__item_quantity') * F('products__price'))
         )
         return amount_order
 
