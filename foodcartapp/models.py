@@ -172,7 +172,8 @@ class Order(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Ресторан, который приготовит заказ',
         related_name='orders',
-        null=True
+        null=True,
+        blank=True
     )
     firstname = models.CharField(
         'Имя',
