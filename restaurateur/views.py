@@ -73,8 +73,10 @@ def view_products(request):
 
     products_with_restaurant_availability = []
     for product in products:
-        availability = {item.restaurant_id: item.availability for item in product.menu_items.all()}
-        ordered_availability = [availability.get(restaurant.id, False) for restaurant in restaurants]
+        availability = {item.restaurant_id: item.availability for item in
+                        product.menu_items.all()}
+        ordered_availability = [availability.get(restaurant.id, False) for
+                                restaurant in restaurants]
 
         products_with_restaurant_availability.append(
             (product, ordered_availability)
@@ -95,13 +97,13 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    orders = Order.objects.summary()\
-        .filter(status__in=['NP', 'IP', 'ID'])\
-        .prefetch_related('products__product')\
-        .prefetch_related('restaurant')\
+    orders = Order.objects.summary() \
+        .filter(status__in=['NP', 'IP', 'ID']) \
+        .prefetch_related('products__product') \
+        .prefetch_related('restaurant') \
         .order_by('-status')
-    menu_items = RestaurantMenuItem.objects.all()\
-        .select_related('product').select_related('restaurant')\
+    menu_items = RestaurantMenuItem.objects.all() \
+        .select_related('product').select_related('restaurant') \
         .exclude(availability=False)
     places = {place.address: {
         'lat': place.latitude,
@@ -113,17 +115,16 @@ def view_orders(request):
         order.valid_address = True
         order.available_restaurants = set()
 
-        for item in order.products.all():
+        for position_in_order, item in enumerate(order.products.all()):
             available_restaurants = [
                 restaurant_item.restaurant for restaurant_item in menu_items
                 if item.product.id == restaurant_item.product.id
             ]
-            if not order.available_restaurants:
+            if not order.available_restaurants and not position_in_order:
                 order.available_restaurants = set(available_restaurants)
                 continue
 
-            order.available_restaurants = order.available_restaurants \
-                                          & set(available_restaurants)
+            order.available_restaurants &= set(available_restaurants)
 
         for restaurant in order.available_restaurants:
             if restaurant.address not in places.keys():
@@ -136,14 +137,14 @@ def view_orders(request):
             else:
                 order_coordinates = places[order.address]['lat'], \
                                     places[order.address]['lon']
-                
+
             if not order_coordinates:
                 order.valid_address = False
                 break
 
             order.restaurants[restaurant] = round(
-                distance.distance(restaurant_coordinates, order_coordinates).km,
-                2)
+                distance.distance(restaurant_coordinates, order_coordinates)
+                .km, 2)
         order.restaurants = \
             dict(sorted(order.restaurants.items(), key=lambda item: item[1]))
 

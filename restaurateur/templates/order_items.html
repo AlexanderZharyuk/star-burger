@@ -40,7 +40,7 @@
             <p style="font-weight: bold">Может быть приготовлен ресторанами:</p>
             {% if not item.valid_address %}
               <p>Некорректно указан адрес</p>
-            {% elif not item.restaurants %}
+            {% elif not item.available_restaurants %}
               <p>Нет доступных ресторанов для заказа</p>
             {% else %}
               {% for restaurant, distance in item.restaurants.items %}
