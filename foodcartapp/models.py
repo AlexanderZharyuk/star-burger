@@ -234,7 +234,8 @@ class ItemsInOrder(models.Model):
         on_delete=models.CASCADE
     )
     quantity = models.IntegerField(
-        verbose_name='Количество'
+        verbose_name='Количество',
+        validators=[MinValueValidator(1)]
     )
     price = models.DecimalField(
         'Цена позиции',
