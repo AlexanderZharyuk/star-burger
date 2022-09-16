@@ -99,7 +99,7 @@ def view_restaurants(request):
 def view_orders(request):
     orders = Order.objects.summary() \
         .filter(status__in=['NP', 'IP', 'ID']) \
-        .prefetch_related('products__product') \
+        .prefetch_related('items__product') \
         .prefetch_related('restaurant') \
         .order_by('-status')
     menu_items = RestaurantMenuItem.objects.all() \
@@ -115,7 +115,7 @@ def view_orders(request):
         order.valid_address = True
         order.available_restaurants = set()
 
-        for position_in_order, item in enumerate(order.products.all()):
+        for position_in_order, item in enumerate(order.items.all()):
             available_restaurants = [
                 restaurant_item.restaurant for restaurant_item in menu_items
                 if item.product.id == restaurant_item.product.id
