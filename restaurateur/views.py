@@ -100,7 +100,7 @@ def view_orders(request):
     orders = Order.objects.summary() \
         .filter(status__in=['NP', 'IP', 'ID']) \
         .prefetch_related('items__product') \
-        .prefetch_related('restaurant') \
+        .prefetch_related('cooking_restaurant') \
         .order_by('-status')
     menu_items = RestaurantMenuItem.objects.all() \
         .select_related('product').select_related('restaurant') \

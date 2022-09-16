@@ -169,7 +169,7 @@ class Order(models.Model):
         choices=ORDER_PAID_STATUS_CHOICES,
         default=PAID_NOT_CHOSEN
     )
-    restaurant = models.ForeignKey(
+    cooking_restaurant = models.ForeignKey(
         'Restaurant',
         on_delete=models.CASCADE,
         verbose_name='Ресторан, который приготовит заказ',
