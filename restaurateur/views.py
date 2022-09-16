@@ -1,8 +1,5 @@
-import requests
-
 from django import forms
 from django.shortcuts import redirect, render
-from django.conf import settings
 from django.views import View
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
@@ -12,6 +9,7 @@ from geopy import distance
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 from distances.models import Place
+from distances.services import get_address_coordinates
 
 
 class Login(forms.Form):
@@ -128,12 +126,12 @@ def view_orders(request):
 
         for restaurant in order.available_restaurants:
             if restaurant.address not in places.keys():
-                restaurant_coordinates = _get_address_coordinates(restaurant.address)
+                restaurant_coordinates = get_address_coordinates(restaurant.address)
             else:
                 restaurant_coordinates = places[restaurant.address]['lat'], \
                                          places[restaurant.address]['lon']
             if order.address not in places.keys():
-                order_coordinates = _get_address_coordinates(order.address)
+                order_coordinates = get_address_coordinates(order.address)
             else:
                 order_coordinates = places[order.address]['lat'], \
                                     places[order.address]['lon']
@@ -153,37 +151,3 @@ def view_orders(request):
     }
     return render(request, template_name='order_items.html',
                   context=context)
-
-
-def _fetch_coordinates(apikey, address):
-    base_url = "https://geocode-maps.yandex.ru/1.x"
-    response = requests.get(base_url, params={
-        "geocode": address,
-        "apikey": apikey,
-        "format": "json",
-    })
-    response.raise_for_status()
-    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
-
-    if not found_places:
-        return None
-
-    most_relevant = found_places[0]
-    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
-    return lat, lon
-
-
-def _get_address_coordinates(address):
-    place, created = Place.objects.get_or_create(address=address)
-
-    if not created:
-        return place.latitude, place.longitude
-
-    place_coordinates = _fetch_coordinates(settings.YANDEX_API_KEY, address)
-    if not place_coordinates:
-        return False
-
-    place.address = address
-    place.latitude, place.longitude = place_coordinates
-    place.save()
-    return place.latitude, place.longitude
