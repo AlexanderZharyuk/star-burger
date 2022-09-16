@@ -89,7 +89,7 @@ def register_order(request):
     serializer = OrderSerializer(data=order)
     serializer.is_valid(raise_exception=True)
 
-    founded_order, created = Order.objects.get_or_create(
+    order = Order.objects.create(
         firstname=serializer.validated_data['firstname'],
         lastname=serializer.validated_data['lastname'],
         phonenumber=serializer.validated_data['phonenumber'],
@@ -103,7 +103,7 @@ def register_order(request):
 
         founded_product = Product.objects.get(id=product_id)
         ItemsInOrder.objects.create(
-            order=founded_order,
+            order=order,
             product=founded_product,
             quantity=product_quantity,
             price=founded_product.price
