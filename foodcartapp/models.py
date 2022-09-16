@@ -142,6 +142,7 @@ class Order(models.Model):
     PROCESSED = 'OP'
     PAID_BY_CASH = 'CASH'
     PAID_BY_CARD = 'CARD'
+    PAID_NOT_CHOSEN = 'NOT_CHOSEN'
 
     ORDER_STATUS_CHOICES = [
         (NOT_PROCESSED, 'Не обработан'),
@@ -151,7 +152,8 @@ class Order(models.Model):
     ]
     ORDER_PAID_STATUS_CHOICES = [
         (PAID_BY_CASH, 'Наличными'),
-        (PAID_BY_CARD, 'Интернет-эквайринг')
+        (PAID_BY_CARD, 'Интернет-эквайринг'),
+        (PAID_NOT_CHOSEN, 'Не выбран')
     ]
 
     status = models.CharField(
@@ -165,7 +167,7 @@ class Order(models.Model):
         max_length=50,
         verbose_name='Способ оплаты',
         choices=ORDER_PAID_STATUS_CHOICES,
-        default=PAID_BY_CASH
+        default=PAID_NOT_CHOSEN
     )
     restaurant = models.ForeignKey(
         'Restaurant',
