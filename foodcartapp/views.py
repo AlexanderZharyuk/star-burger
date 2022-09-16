@@ -109,7 +109,6 @@ def register_order(request):
             price=founded_product.price
         )
 
-    order_id = Order.objects.all().count()
-    server_response = {'id': order_id}
+    server_response = {'id': order.id}
     server_response.update(serializer.data)
     return Response(server_response)
