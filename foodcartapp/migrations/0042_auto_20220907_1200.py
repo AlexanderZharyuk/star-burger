@@ -5,9 +5,10 @@ from django.db import migrations
 
 def set_orders_price(apps, schema_editor):
     ItemsInOrder = apps.get_model('foodcartapp', 'ItemsInOrder')
+    items = ItemsInOrder.objects.all().iterator()
 
-    for item in ItemsInOrder.objects.all():
-        item.price = item.item_quantity * item.product.price
+    for item in items:
+        item.price = item.quantity * item.product.price
         item.save()
 
 
