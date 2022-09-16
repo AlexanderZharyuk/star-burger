@@ -105,7 +105,7 @@ def register_order(request):
         ItemsInOrder.objects.create(
             order=founded_order,
             product=founded_product,
-            item_quantity=product_quantity,
+            quantity=product_quantity,
             price=founded_product.price
         )
 

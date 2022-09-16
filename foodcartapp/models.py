@@ -130,7 +130,7 @@ class OrderQuerySet(models.QuerySet):
     def summary(self):
         amount_order = self.annotate(
             amount=Sum(
-                F('products__item_quantity') * F('products__price'))
+                F('products__quantity') * F('products__price'))
         )
         return amount_order
 
@@ -233,7 +233,7 @@ class ItemsInOrder(models.Model):
         related_name='order',
         on_delete=models.CASCADE
     )
-    item_quantity = models.IntegerField(
+    quantity = models.IntegerField(
         verbose_name='Количество'
     )
     price = models.DecimalField(
@@ -245,4 +245,4 @@ class ItemsInOrder(models.Model):
     )
 
     def __str__(self):
-        return f'Продукт {self.product.name} в количестве {self.item_quantity}'
+        return f'Продукт {self.product.name} в количестве {self.quantity}'
