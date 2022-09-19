@@ -97,18 +97,22 @@ def register_order(request):
     )
 
     products_in_order = serializer.validated_data['products']
+    items_in_order = []
+
     for product in products_in_order:
         product_id = product['product']
         product_quantity = product['quantity']
 
         founded_product = Product.objects.get(id=product_id)
-        ItemsInOrder.objects.create(
+        item = ItemsInOrder(
             order=order,
             product=founded_product,
             quantity=product_quantity,
             price=founded_product.price
         )
+        items_in_order.append(item)
 
+    ItemsInOrder.objects.bulk_create(items_in_order)
     server_response = {'id': order.id}
     server_response.update(serializer.data)
     return Response(server_response)
