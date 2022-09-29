@@ -11,6 +11,8 @@ from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 from distances.models import Place
 from distances.services import get_address_coordinates
 
+from django.db import connection
+
 
 class Login(forms.Form):
     username = forms.CharField(
@@ -103,10 +105,17 @@ def view_orders(request):
     menu_items = RestaurantMenuItem.objects.all() \
         .select_related('product').select_related('restaurant') \
         .exclude(availability=False)
+    not_completed_order_addresses = [order.address for order in orders]
+    not_completed_order_addresses.extend(
+        [restaurant.address for restaurant in Restaurant.objects.all()]
+    )
+
     places = {place.address: {
         'lat': place.latitude,
         'lon': place.longitude
-    } for place in Place.objects.all()}
+    } for place in Place.objects.filter(
+        address__in=set(not_completed_order_addresses)
+    )}
 
     for order in orders:
         order.restaurants = {}
@@ -126,7 +135,9 @@ def view_orders(request):
 
         for restaurant in order.available_restaurants:
             if restaurant.address not in places.keys():
-                restaurant_coordinates = get_address_coordinates(restaurant.address)
+                restaurant_coordinates = get_address_coordinates(
+                    restaurant.address
+                )
             else:
                 restaurant_coordinates = places[restaurant.address]['lat'], \
                                          places[restaurant.address]['lon']
@@ -149,5 +160,7 @@ def view_orders(request):
     context = {
         'order_items': orders,
     }
-    return render(request, template_name='order_items.html',
-                  context=context)
+    return render(
+        request,
+        template_name='order_items.html',
+        context=context)
