@@ -147,7 +147,7 @@ def view_orders(request):
                 order_coordinates = places[order.address]['lat'], \
                                     places[order.address]['lon']
 
-            if not order_coordinates:
+            if not order_coordinates or order_coordinates == (None, None):
                 order.valid_address = False
                 break
 

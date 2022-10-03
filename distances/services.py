@@ -30,7 +30,7 @@ def get_address_coordinates(address):
 
     place_coordinates = _fetch_coordinates(settings.YANDEX_API_KEY, address)
     if not place_coordinates:
-        return False
+        return None
 
     place.address = address
     place.latitude, place.longitude = place_coordinates
