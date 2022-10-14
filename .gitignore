@@ -142,6 +142,7 @@ dmypy.json
 cython_debug/
 
 .parcel-cache/
+staticfiles/
 
 #macOS files
 .DS_Store
