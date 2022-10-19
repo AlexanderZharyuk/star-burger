@@ -55,7 +55,7 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY` и перменные для `ROLLBAR`. API яндекса используется для вычисления расстояния от ресторана до пользователя, создавшего заказ. ROLLBAR позволяет отслеживать возникшие ошибки на сервере.
+Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY` и переменные для `ROLLBAR`. API яндекса используется для вычисления расстояния от ресторана до пользователя, создавшего заказ. ROLLBAR позволяет отслеживать возникшие ошибки на сервере.
 
 Создать файл `.env` в каталоге `star_burger/` и положите туда такой код:
 ```sh
@@ -65,7 +65,14 @@ ROLLBAR_TOKEN=<YOUR-ROLLBAR-TOKEN>
 ROLLBAR_ENV=<ROLLBAR-ENV-NAME>
 ```
 
-Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
+Создайте файл базы данных PostgreSQL, запустите сервер с БД и добавьте в `.env` строчку с данными для подключения к БД:
+```sh
+DJ_DATABASE_URL=<postgres://<YOUR-USERNAME>:<YOUR-PASSWORD>@localhost:5432/<YOUR-DATABASE-NAME>>
+```
+
+Для запуска сервера PostgreSQL воспользуйтесь этим [гайдом](https://www.digitalocean.com/community/tutorials/how-to-use-postgresql-with-your-django-application-on-ubuntu-14-04)
+
+После чего отмигрируйте БД следующей командой:
 
 ```sh
 python manage.py migrate
@@ -156,6 +163,7 @@ Parcel будет следить за файлами в каталоге `bundle
 - `YANDEX_API_KEY` — API-ключ от сервисов яндекса. Позволяет получить широту и долготу адреса для последующих расчетов расстояния.
 - `ROLLBAR_TOKEN` — [см.документацию Rollbar](https://rollbar.com/)
 - `ROLLBAR_ENV` — укажите название окружения, в котором используется ROLLBAR для отслеживания ошибок.
+- `DJ_DATABASE_URL` — укажите данные от БД PostgreSQL подобно инструкции из развертывания dev-версии сайта.
 
 ## Цели проекта
 
@@ -164,3 +172,4 @@ Parcel будет следить за файлами в каталоге `bundle
 Где используется репозиторий:
 
 - Второй и третий урок [учебного модуля Django](https://dvmn.org/modules/django/)
+
