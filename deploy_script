@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+
+cd "/opt/star-burger"
+echo "Updating local repository..."
+git pull
+
+requirements_status_message="Install project-requirements..."
+if [ -d "/opt/star-burger/venv" ] 
+then
+    requirements_status_message="Update project requirements..."
+    . venv/bin/activate 
+else
+    echo "Can't find project venv folder. Creating it in project folder..."
+    python3 -m venv venv
+fi
+
+echo $requirements_status_message
+. venv/bin/activate
+pip install -r requirements.txt
+export NODE_OPTIONS=--no-experimental-fetch
+
+npm ci --dev
+./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
+python3 manage.py collectstatic --noinput
+python3 manage.py migrate
+systemctl restart starburger.service
+systemctl reload nginx.service
+
+successfull_message_color="\033[0;32m"
+default_color="\033[0m"
+echo -e "${successfull_message_color}Deploy was successfull!${default_color}"
+
+curl -H "X-Rollbar-Access-Token: 0dc1f5f7de3041d09799146b08ca2eb2" -H "Content-Type: application/json" -X POST 'https://api.rollbar.com/api/1/deploy' -d '{"environment": "production", "revision": "'$(git rev-parse HEAD)'", "rollbar_name": "REALVIZY", "local_username": "Alexander Jariuc", "status": "succeeded"}' -s > /dev/null
